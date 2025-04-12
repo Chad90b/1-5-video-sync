@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>1-5 Video Sync</title>
+  <style>
+    .video-container { display: flex; flex-wrap: wrap; gap: 10px; }
+    video { width: 300px; height: auto; }
+    .controls { margin-bottom: 10px; }
+    input { margin: 5px; width: 300px; }
+    button { margin: 5px; }
+    #shareLink { width: 300px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <input type="text" id="url1" placeholder="Video 1 URL"><br>
+    <input type="text" id="url2" placeholder="Video 2 URL"><br>
+    <input type="text" id="url3" placeholder="Video 3 URL"><br>
+    <input type="text" id="url4" placeholder="Video 4 URL"><br>
+    <input type="text" id="url5" placeholder="Video 5 URL"><br>
+    <button onclick="loadVideos()">Load Videos</button>
+    <button onclick="generateShareLink()">Generate Share Link</button>
+    <br>
+    <input type="text" id="shareLink" readonly placeholder="Shareable link appears here">
+    <button onclick="copyShareLink()">Copy Link</button>
+  </div>
+  <div class="video-container" id="videoContainer"></div>
+
+  <script>
+    let videos = [];
+
+    // Load cached URLs or URL parameters on page load
+    window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+      
+      // Prefer URL parameters if present, else fall back to localStorage
+      inputs.forEach((id, index) => {
+        const input = document.getElementById(id);
+        const param = urlParams.get(`v${index + 1}`);
+        if (param) {
+          input.value = param;
+        } else {
+          const cached = localStorage.getItem(id);
+          if (cached) input.value = cached;
+        }
+      });
+
+      // Auto-load videos if URL parameters exist
+      if (urlParams.has('v1')) loadVideos();
+    };
+
+    function loadVideos() {
+      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+      const urls = inputs
+        .map(id => document.getElementById(id).value)
+        .filter(url => url.trim() !== '');
+
+      // Cache URLs in localStorage
+      inputs.forEach(id => {
+        const value = document.getElementById(id).value;
+        if (value.trim() !== '') {
+          localStorage.setItem(id, value);
+        } else {
+          localStorage.removeItem(id);
+        }
+      });
+
+      const container = document.getElementById('videoContainer');
+      container.innerHTML = '';
+      videos = [];
+
+      urls.forEach((url, index) => {
+        const video = document.createElement('video');
+        video.src = url;
+        video.controls = true;
+        video.preload = 'metadata';
+
+        const muteButton = document.createElement('button');
+        muteButton.textContent = 'Mute';
+        muteButton.onclick = () => {
+          video.muted = !video.muted;
+          muteButton.textContent = video.muted ? 'Unmute' : 'Mute';
+        };
+
+        container.appendChild(video);
+        container.appendChild(muteButton);
+        videos.push(video);
+      });
+
+      // Sync events
+      videos.forEach((video, index) => {
+        video.addEventListener('play', () => {
+          videos.forEach((v, i) => {
+            if (i !== index && v.paused) v.play().catch(() => {});
+          });
+        });
+
+        video.addEventListener('pause', () => {
+          videos.forEach((v, i) => {
+            if (i !== index && !v.paused) v.pause();
+          });
+        });
+
+        video.addEventListener('seeking', () => {
+          const currentTime = video.currentTime;
+          videos.forEach((v, i) => {
+            if (i !== index) v.currentTime = currentTime;
+          });
+        });
+      });
+    }
+
+    function generateShareLink() {
+      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+      const params = new URLSearchParams();
+      inputs.forEach((id, index) => {
+        const value = document.getElementById(id).value;
+        if (value.trim() !== '') {
+          params.set(`v${index + 1}`, value);
+        }
+      });
+
+      const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+      const shareInput = document.getElementById('shareLink');
+      shareInput.value = shareUrl;
+    }
+
+    function copyShareLink() {
+      const shareInput = document.getElementById('shareLink');
+      shareInput.select();
+      document.execCommand('copy');
+      alert('Link copied to clipboard!');
+    }
+  </script>
+</body>
+</html>
