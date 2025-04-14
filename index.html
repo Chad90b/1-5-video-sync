@@ -150,8 +150,9 @@
 
   <script>
     let videos = [];
-    let isSyncing = false;
-    let syncAnimationFrame;
+    let audioContext;
+    let videoStartTime = 0;
+    let isPlaying = false;
 
     // load cached urls or url params on page load
     window.onload = () => {
@@ -175,10 +176,10 @@
     };
 
     function loadVideos() {
-      // clear existing sync first
-      if (syncAnimationFrame) {
-        cancelAnimationFrame(syncAnimationFrame);
-        syncAnimationFrame = null;
+      // Clean up previous audio context
+      if (audioContext) {
+        audioContext.close();
+        audioContext = null;
       }
 
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
@@ -199,6 +200,10 @@
       const container = document.getElementById('videoContainer');
       container.innerHTML = '';
       videos = [];
+      isPlaying = false;
+
+      // Create audio context when user interacts (required by browsers)
+      document.body.addEventListener('click', initAudioContext, { once: true });
 
       urls.forEach((url, index) => {
         const wrapper = document.createElement('div');
@@ -209,6 +214,8 @@
         video.controls = true;
         video.preload = 'auto';
         video.playsInline = true;
+        video.muted = true; // We'll handle audio separately
+        video.disableRemotePlayback = true;
         
         // loading indicator
         const loadingText = document.createElement('div');
@@ -226,10 +233,10 @@
           loadingText.textContent = 'error loading video';
         });
 
-        // mute button as overlay **BROKEN** mustfix
+        // mute button as overlay
         const muteButton = document.createElement('button');
         muteButton.className = 'mute-button';
-        muteButton.textContent = 'Mute';
+        muteButton.textContent = 'Unmute';
         muteButton.onclick = (e) => {
           e.stopPropagation();
           video.muted = !video.muted;
@@ -241,101 +248,82 @@
         container.appendChild(wrapper);
         videos.push(video);
       });
-
-      // sync
-      setupSyncEvents();
     }
 
-    function setupSyncEvents() {
-      // clear all old event listeners first
+    function initAudioContext() {
+      if (audioContext) return;
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Create a single gain node for all videos
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 1.0;
+      gainNode.connect(audioContext.destination);
+      
+      // Setup audio for each video
       videos.forEach(video => {
-        const newVideo = video.cloneNode(true);
-        video.replaceWith(newVideo);
-        video = newVideo;
-      });
-      
-      // get fresh video references
-      videos = Array.from(document.querySelectorAll('video'));
-      if (videos.length === 0) return;
-      
-      const masterVideo = videos[0];
-      
-      // efficient sync using requestAnimationFrame
-      function efficientSync() {
-        if (isSyncing || document.hidden) {
-          syncAnimationFrame = requestAnimationFrame(efficientSync);
-          return;
-        }
-        
-        isSyncing = true;
-        const targetTime = masterVideo.currentTime;
-        const isPlaying = !masterVideo.paused;
-        
-        // only sync videos that need it
-        for (let i = 1; i < videos.length; i++) {
-          const video = videos[i];
-          
-          // skip if video isn't ready
-          if (video.readyState < 2) continue;
-          
-          // only sync if difference is significant (>100ms)
-          if (Math.abs(video.currentTime - targetTime) > 0.1) {
-            video.currentTime = targetTime;
-          }
-          
-          // sync play/pause state
-          if (isPlaying && video.paused) {
-            video.play().catch(() => {});
-          } else if (!isPlaying && !video.paused) {
-            video.pause();
-          }
-        }
-        
-        isSyncing = false;
-        syncAnimationFrame = requestAnimationFrame(efficientSync);
-      }
-      
-      // start the sync loop
-      syncAnimationFrame = requestAnimationFrame(efficientSync);
-      
-      // handle seeking on any video
-      videos.forEach(video => {
-        video.addEventListener('seeking', () => {
-          if (isSyncing) return;
-          isSyncing = true;
-          const seekTime = video.currentTime;
-          for (const v of videos) {
-            if (v !== video) v.currentTime = seekTime;
-          }
-          isSyncing = false;
-        });
+        const source = audioContext.createMediaElementSource(video);
+        source.connect(gainNode);
       });
     }
 
     // gc funcs play pause etc
     function playAll() {
-      videos.forEach(v => v.play().catch(() => {}));
+      if (!audioContext) initAudioContext();
+      
+      const now = audioContext.currentTime;
+      const startTime = now + 0.1; // Start 100ms from now
+      
+      videos.forEach((video, index) => {
+        video.currentTime = 0;
+        video.play()
+          .then(() => {
+            // Schedule precise playback start
+            if (audioContext.state === 'suspended') {
+              audioContext.resume();
+            }
+            video.currentTime = 0;
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                // Fallback if precise timing fails
+                video.play();
+              });
+            }
+          })
+          .catch(() => {
+            // Fallback if audio context fails
+            video.muted = false;
+            video.play();
+          });
+      });
+      
+      isPlaying = true;
+      videoStartTime = performance.now();
     }
 
     function pauseAll() {
-      videos.forEach(v => v.pause());
+      videos.forEach(video => {
+        video.pause();
+      });
+      isPlaying = false;
     }
 
     function forceSync() {
       if (videos.length === 0) return;
       const currentTime = videos[0].currentTime;
-      const isPlaying = !videos[0].paused;
+      const shouldPlay = !videos[0].paused;
       
-      videos.forEach((v, i) => {
-        v.currentTime = currentTime;
-        if (isPlaying && v.paused) {
-          v.play().catch(() => {});
-        } else if (!isPlaying && !v.paused) {
-          v.pause();
+      videos.forEach(video => {
+        video.currentTime = currentTime;
+        if (shouldPlay && video.paused) {
+          video.play().catch(() => {});
+        } else if (!shouldPlay && !video.paused) {
+          video.pause();
         }
       });
     }
-
+    
     function generateShareLink() {
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
       const params = new URLSearchParams();
