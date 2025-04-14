@@ -83,6 +83,7 @@
       max-width: 800px;
     }
     video {
+      will-change: transform;
       width: 100%;
       display: block;
     }
@@ -173,6 +174,9 @@
     };
 
     function loadVideos() {
+      // clear sync
+      if (syncInterval) clearInterval(syncInterval);
+      
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
       const urls = inputs
         .map(id => document.getElementById(id).value)
