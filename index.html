@@ -10,13 +10,20 @@
       flex-direction: column; 
       align-items: center;
       margin: 10px;
+      background: #000; /* Black background for video area */
     }
-    video { width: 300px; height: auto; }
+    video { 
+      width: 300px; 
+      height: auto;
+      background: #000; /* Ensures black background before video loads */
+      display: block; /* Removes extra space below video */
+    }
     .controls { margin-bottom: 10px; }
     .global-controls { margin: 15px 0; padding: 10px; background: #f0f0f0; }
     input { margin: 5px; width: 300px; }
     button { margin: 5px; padding: 5px 10px; }
     #shareLink { width: 300px; margin-top: 10px; }
+    .loading { color: white; text-align: center; padding: 10px; }
   </style>
 </head>
 <body>
@@ -92,7 +99,24 @@
         const video = document.createElement('video');
         video.src = url;
         video.controls = true;
-        video.preload = 'metadata';
+        video.preload = 'auto'; // Changed from 'metadata' to 'auto' for better loading
+        video.playsInline = true; // Important for mobile browsers
+        
+        // Add loading indicator
+        const loadingText = document.createElement('div');
+        loadingText.className = 'loading';
+        loadingText.textContent = 'Loading video...';
+        wrapper.appendChild(loadingText);
+        
+        // When video metadata is loaded, show the video
+        video.addEventListener('loadedmetadata', () => {
+          loadingText.style.display = 'none';
+          video.style.display = 'block';
+        });
+
+        video.addEventListener('error', () => {
+          loadingText.textContent = 'Error loading video';
+        });
 
         const muteButton = document.createElement('button');
         muteButton.textContent = 'Mute';
