@@ -148,6 +148,7 @@
 
   <script>
     let videos = [];
+    let isSyncing = false;
 
     // load cached urls or url params on page load
     window.onload = () => {
@@ -237,35 +238,52 @@
     }
 
     function setupSyncEvents() {
-      videos.forEach((video, index) => {
-        // clear old event listeners to avoid duplicates
+      // clear all old event listeners first
+      videos.forEach(video => {
         video.replaceWith(video.cloneNode(true));
-        video = videos[index] = document.querySelectorAll('video')[index];
-
-        video.addEventListener('play', () => {
-          videos.forEach((v, i) => {
-            if (i !== index && v.paused) v.play().catch(() => {});
-          });
-        });
-
-        video.addEventListener('pause', () => {
-          videos.forEach((v, i) => {
-            if (i !== index && !v.paused) v.pause();
-          });
-        });
-
-        video.addEventListener('seeking', () => {
-          const currentTime = video.currentTime;
-          videos.forEach((v, i) => {
-            if (i !== index) v.currentTime = currentTime;
-          });
-        });
-
-        // sync with timeupdate **BROKEN** mustfix
-        video.addEventListener('timeupdate', () => {
-          if (Math.abs(video.currentTime - videos[0].currentTime) > 0.2) {
-            video.currentTime = videos[0].currentTime;
+      });
+      
+      // get fresh video references
+      videos = Array.from(document.querySelectorAll('video'));
+      if (videos.length === 0) return;
+      
+      const masterVideo = videos[0];
+      
+      // sync all videos to master every 500ms
+      const syncInterval = setInterval(() => {
+        if (isSyncing) return;
+        
+        isSyncing = true;
+        const targetTime = masterVideo.currentTime;
+        const isPlaying = !masterVideo.paused;
+        
+        videos.slice(1).forEach(video => {
+          // only sync if difference is significant (>100ms)
+          if (Math.abs(video.currentTime - targetTime) > 0.1) {
+            video.currentTime = targetTime;
           }
+          
+          // sync play/pause state
+          if (isPlaying && video.paused) {
+            video.play().catch(() => {});
+          } else if (!isPlaying && !video.paused) {
+            video.pause();
+          }
+        });
+        
+        isSyncing = false;
+      }, 500);
+      
+      // handle seeking on any video
+      videos.forEach(video => {
+        video.addEventListener('seeking', () => {
+          if (isSyncing) return;
+          isSyncing = true;
+          const seekTime = video.currentTime;
+          videos.forEach(v => {
+            if (v !== video) v.currentTime = seekTime;
+          });
+          isSyncing = false;
         });
       });
     }
