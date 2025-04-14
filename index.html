@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>1-5 video sync</title>
+  <title>1-5 video sync :3</title>
   <style>
     body {
       margin: 0;
@@ -16,7 +16,7 @@
       height: 100vh;
     }
     
-    /* Header Section */
+    /* headers */
     .header {
       grid-area: header;
       background: #f0f0f0;
@@ -32,7 +32,7 @@
       text-transform: lowercase;
     }
     
-    /* Sidebar Section */
+    /* sidebars */
     .sidebar {
       grid-area: sidebar;
       padding: 20px;
@@ -65,7 +65,7 @@
       box-sizing: border-box;
     }
     
-    /* Main Content Section */
+    /* contents */
     .main-content {
       grid-area: main;
       padding: 20px;
@@ -115,32 +115,32 @@
   </style>
 </head>
 <body>
-  <!-- Header Section -->
+  <!-- headers -->
   <header class="header">
     <h1>1-5 video sync</h1>
   </header>
   
-  <!-- Sidebar Section -->
+  <!-- sidebars -->
   <aside class="sidebar">
-    <input type="text" id="url1" placeholder="Video 1 URL">
-    <input type="text" id="url2" placeholder="Video 2 URL">
-    <input type="text" id="url3" placeholder="Video 3 URL">
-    <input type="text" id="url4" placeholder="Video 4 URL">
-    <input type="text" id="url5" placeholder="Video 5 URL">
+    <input type="text" id="url1" placeholder="video 1 url">
+    <input type="text" id="url2" placeholder="video 2 url">
+    <input type="text" id="url3" placeholder="video 3 url">
+    <input type="text" id="url4" placeholder="video 4 url">
+    <input type="text" id="url5" placeholder="video 5 url">
     
-    <button onclick="loadVideos()">Load Videos</button>
-    <button onclick="generateShareLink()">Generate Share Link</button>
+    <button onclick="loadVideos()">load video urls</button>
+    <button onclick="generateShareLink()">generate share link</button>
     
-    <input type="text" id="shareLink" readonly placeholder="Shareable link appears here">
-    <button onclick="copyShareLink()">Copy Link</button>
+    <input type="text" id="shareLink" readonly placeholder="shareable link appears here">
+    <button onclick="copyShareLink()">copy share link</button>
   </aside>
   
-  <!-- Main Content Section -->
+  <!-- cotnents -->
   <main class="main-content">
     <div class="global-controls">
-      <button onclick="playAll()">Play All</button>
-      <button onclick="pauseAll()">Pause All</button>
-      <button onclick="forceSync()">Force Sync</button>
+      <button onclick="playAll()">▶ play all</button>
+      <button onclick="pauseAll()">pause all</button>
+      <button onclick="forceSync()">force sync</button>
     </div>
     
     <div class="video-container" id="videoContainer"></div>
@@ -149,12 +149,12 @@
   <script>
     let videos = [];
 
-    // Load cached URLs or URL parameters on page load
+    // load cached urls or url params on page load
     window.onload = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
       
-      // Prefer URL parameters if present, else fall back to localStorage
+      // prefer perams if present, else fallback to local storgae
       inputs.forEach((id, index) => {
         const input = document.getElementById(id);
         const param = urlParams.get(`v${index + 1}`);
@@ -166,7 +166,7 @@
         }
       });
 
-      // Auto-load videos if URL parameters exist
+      // load in videos automatically if url param
       if (urlParams.has('v1')) loadVideos();
     };
 
@@ -176,7 +176,7 @@
         .map(id => document.getElementById(id).value)
         .filter(url => url.trim() !== '');
 
-      // Cache URLs in localStorage
+      // cache urls into local storage
       inputs.forEach(id => {
         const value = document.getElementById(id).value;
         if (value.trim() !== '') {
@@ -200,23 +200,23 @@
         video.preload = 'auto';
         video.playsInline = true;
         
-        // Add loading indicator
+        // loading indicator
         const loadingText = document.createElement('div');
         loadingText.className = 'loading';
-        loadingText.textContent = 'Loading video...';
+        loadingText.textContent = 'loading video...';
         wrapper.appendChild(loadingText);
         
-        // When video metadata is loaded, show the video
+        // show video after loaded metadata
         video.addEventListener('loadedmetadata', () => {
           loadingText.style.display = 'none';
           video.style.display = 'block';
         });
 
         video.addEventListener('error', () => {
-          loadingText.textContent = 'Error loading video';
+          loadingText.textContent = 'error loading video';
         });
 
-        // Create mute button as overlay
+        // mute button as overlay **BROKEN** mustfix
         const muteButton = document.createElement('button');
         muteButton.className = 'mute-button';
         muteButton.textContent = 'Mute';
@@ -232,13 +232,13 @@
         videos.push(video);
       });
 
-      // Sync events
+      // sync
       setupSyncEvents();
     }
 
     function setupSyncEvents() {
       videos.forEach((video, index) => {
-        // Clear previous event listeners to avoid duplicates
+        // clear old event listeners to avoid duplicates
         video.replaceWith(video.cloneNode(true));
         video = videos[index] = document.querySelectorAll('video')[index];
 
@@ -261,7 +261,7 @@
           });
         });
 
-        // Better sync with timeupdate
+        // sync with timeupdate **BROKEN** mustfix
         video.addEventListener('timeupdate', () => {
           if (Math.abs(video.currentTime - videos[0].currentTime) > 0.2) {
             video.currentTime = videos[0].currentTime;
@@ -270,7 +270,7 @@
       });
     }
 
-    // Global control functions
+    // gc funcs play pause etc
     function playAll() {
       videos.forEach(v => v.play().catch(() => {}));
     }
@@ -313,7 +313,7 @@
       const shareInput = document.getElementById('shareLink');
       shareInput.select();
       document.execCommand('copy');
-      alert('Link copied to clipboard!');
+      alert('link copied to clipboard!');
     }
   </script>
 </body>
