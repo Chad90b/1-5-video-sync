@@ -146,9 +146,10 @@
     <div class="video-container" id="videoContainer"></div>
   </main>
 
-  <script>
+<script>
     let videos = [];
     let isSyncing = false;
+    let syncInterval;
 
     // load cached urls or url params on page load
     window.onload = () => {
@@ -238,9 +239,14 @@
     }
 
     function setupSyncEvents() {
+      // clear any existing interval
+      if (syncInterval) clearInterval(syncInterval);
+      
       // clear all old event listeners first
       videos.forEach(video => {
-        video.replaceWith(video.cloneNode(true));
+        const newVideo = video.cloneNode(true);
+        video.replaceWith(newVideo);
+        video = newVideo;
       });
       
       // get fresh video references
@@ -249,16 +255,22 @@
       
       const masterVideo = videos[0];
       
-      // sync all videos to master every 500ms
-      const syncInterval = setInterval(() => {
-        if (isSyncing) return;
+      // more efficient sync approach
+      function efficientSync() {
+        if (isSyncing || document.hidden) return;
         
         isSyncing = true;
         const targetTime = masterVideo.currentTime;
         const isPlaying = !masterVideo.paused;
         
-        videos.slice(1).forEach(video => {
-          // only sync if difference is significant (>100ms)
+        // only sync videos that need it
+        for (let i = 1; i < videos.length; i++) {
+          const video = videos[i];
+          
+          // skip if video isn't ready
+          if (video.readyState < 2) continue;
+          
+          // only sync if difference is significant
           if (Math.abs(video.currentTime - targetTime) > 0.1) {
             video.currentTime = targetTime;
           }
@@ -269,11 +281,29 @@
           } else if (!isPlaying && !video.paused) {
             video.pause();
           }
-        });
+        }
         
         isSyncing = false;
-      }, 500);
+        requestAnimationFrame(efficientSync);
+      }
       
+      // use requestAnimationFrame instead of setInterval
+      requestAnimationFrame(efficientSync);
+      
+      // handle seeking on any video
+      videos.forEach(video => {
+        video.addEventListener('seeking', () => {
+          if (isSyncing) return;
+          isSyncing = true;
+          const seekTime = video.currentTime;
+          for (const v of videos) {
+            if (v !== video) v.currentTime = seekTime;
+          }
+          isSyncing = false;
+        });
+      });
+    }
+
       // handle seeking on any video
       videos.forEach(video => {
         video.addEventListener('seeking', () => {
