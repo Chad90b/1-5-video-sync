@@ -2,29 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>1-5 Video Sync</title>
+  <title>1-5 video sync</title>
   <style>
     body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: grid;
+      grid-template-areas:
+        "header header"
+        "sidebar main";
+      grid-template-rows: 60px 1fr;
+      grid-template-columns: 300px 1fr;
+      height: 100vh;
+    }
+    
+    /* Header Section */
+    .header {
+      grid-area: header;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: normal;
+      text-transform: lowercase;
+    }
+    
+    /* Sidebar Section */
+    .sidebar {
+      grid-area: sidebar;
+      padding: 20px;
+      background: #f8f8f8;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+    }
+    .sidebar input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      box-sizing: border-box;
+    }
+    .sidebar button {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      background: #333;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .sidebar button:hover {
+      background: #555;
+    }
+    #shareLink {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      box-sizing: border-box;
+    }
+    
+    /* Main Content Section */
+    .main-content {
+      grid-area: main;
+      padding: 20px;
+      overflow-y: auto;
+      background: white;
+    }
+    .video-container {
       display: flex;
       flex-direction: column;
-      align-items: center;
-    }
-    .video-container { 
-      display: flex; 
-      flex-direction: column;
-      align-items: center;
       gap: 20px;
-      width: 100%;
+    }
+    .video-wrapper {
+      position: relative;
+      background: #000;
       max-width: 800px;
     }
-    .video-wrapper { 
-      position: relative;
+    video {
       width: 100%;
-      background: #000;
-    }
-    video { 
-      width: 100%;
-      height: auto;
       display: block;
     }
     .mute-button {
@@ -43,66 +102,49 @@
     .video-wrapper:hover .mute-button {
       opacity: 1;
     }
-    .controls { 
-      margin-bottom: 20px;
-      width: 100%;
-      max-width: 800px;
+    .global-controls {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
     }
-    .global-controls { 
-      margin: 15px 0; 
-      padding: 10px; 
-      background: #f0f0f0;
-      width: 100%;
-      max-width: 800px;
+    .loading {
+      color: white;
       text-align: center;
-    }
-    input { 
-      margin: 5px; 
-      width: 100%;
-      max-width: 800px;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    button { 
-      margin: 5px; 
-      padding: 8px 15px;
-      cursor: pointer;
-    }
-    #shareLink { 
-      width: 100%;
-      max-width: 800px;
-      margin-top: 10px;
-      padding: 8px;
-      box-sizing: border-box;
-    }
-    .loading { 
-      color: white; 
-      text-align: center; 
       padding: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="controls">
-    <input type="text" id="url1" placeholder="Video 1 URL"><br>
-    <input type="text" id="url2" placeholder="Video 2 URL"><br>
-    <input type="text" id="url3" placeholder="Video 3 URL"><br>
-    <input type="text" id="url4" placeholder="Video 4 URL"><br>
-    <input type="text" id="url5" placeholder="Video 5 URL"><br>
+  <!-- Header Section -->
+  <header class="header">
+    <h1>1-5 video sync</h1>
+  </header>
+  
+  <!-- Sidebar Section -->
+  <aside class="sidebar">
+    <input type="text" id="url1" placeholder="Video 1 URL">
+    <input type="text" id="url2" placeholder="Video 2 URL">
+    <input type="text" id="url3" placeholder="Video 3 URL">
+    <input type="text" id="url4" placeholder="Video 4 URL">
+    <input type="text" id="url5" placeholder="Video 5 URL">
+    
     <button onclick="loadVideos()">Load Videos</button>
     <button onclick="generateShareLink()">Generate Share Link</button>
-    <br>
+    
     <input type="text" id="shareLink" readonly placeholder="Shareable link appears here">
     <button onclick="copyShareLink()">Copy Link</button>
-  </div>
-
-  <div class="global-controls">
-    <button onclick="playAll()">Play All</button>
-    <button onclick="pauseAll()">Pause All</button>
-    <button onclick="forceSync()">Force Sync</button>
-  </div>
-
-  <div class="video-container" id="videoContainer"></div>
+  </aside>
+  
+  <!-- Main Content Section -->
+  <main class="main-content">
+    <div class="global-controls">
+      <button onclick="playAll()">Play All</button>
+      <button onclick="pauseAll()">Pause All</button>
+      <button onclick="forceSync()">Force Sync</button>
+    </div>
+    
+    <div class="video-container" id="videoContainer"></div>
+  </main>
 
   <script>
     let videos = [];
