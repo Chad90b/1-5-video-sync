@@ -1,163 +1,152 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>1-5 video sync :3</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      display: grid;
-      grid-template-areas:
-        "header header"
-        "sidebar main";
-      grid-template-rows: 60px 1fr;
-      grid-template-columns: 300px 1fr;
-      height: 100vh;
-    }
-    
-    /* headers */
-    .header {
-      grid-area: header;
-      background: #f0f0f0;
-      display: flex;
-      align-items: center;
-      padding: 0 20px;
-      border-bottom: 1px solid #ddd;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: normal;
-      text-transform: lowercase;
-    }
-    
-    /* sidebars */
-    .sidebar {
-      grid-area: sidebar;
-      padding: 20px;
-      background: #f8f8f8;
-      border-right: 1px solid #ddd;
-      overflow-y: auto;
-    }
-    .sidebar input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-    }
-    .sidebar button {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 10px;
-      background: #333;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .sidebar button:hover {
-      background: #555;
-    }
-    #shareLink {
-      width: 100%;
-      padding: 8px;
-      margin-top: 10px;
-      box-sizing: border-box;
-    }
-    
-    /* contents */
-    .main-content {
-      grid-area: main;
-      padding: 20px;
-      overflow-y: auto;
-      background: white;
-    }
-    .video-container {
-      display: flex;
-      flex-direction: column;
-      gap: 0px;
-    }
-    .video-wrapper {
-      position: relative;
-      background: #000;
-      max-width: 800px;
-    }
-    /* dont remove 'will-change: transform' it helps with rendering performance */
-    video {
-      width: 100%;
-      display: block;
-      will-change: transform;
-    }
-    .mute-button {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      padding: 5px 10px;
-      background: rgba(0,0,0,0.7);
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .video-wrapper:hover .mute-button {
-      opacity: 1;
-    }
-    .global-controls {
-      margin: 20px 0;
-      display: flex;
-      gap: 10px;
-    }
-    .loading {
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-  </style>
+	<meta charset="UTF-8">
+	<title>1-5 video sync :3</title>
+	<style>
+		body {
+			margin: 0;
+			font-family: Arial, sans-serif;
+			display: grid;
+			grid-template-areas:
+				"header header"
+				"sidebar main";
+			grid-template-rows: 60px 1fr;
+			grid-template-columns: 300px 1fr;
+			height: 100vh;
+		}
+		
+		.header {
+			grid-area: header;
+			background: #f0f0f0;
+			display: flex;
+			align-items: center;
+			padding: 0 20px;
+			border-bottom: 1px solid #ddd;
+		}
+		.header h1 {
+			margin: 0;
+			font-size: 1.5rem;
+			font-weight: normal;
+			text-transform: lowercase;
+		}
+		
+		.sidebar {
+			grid-area: sidebar;
+			padding: 20px;
+			background: #f8f8f8;
+			border-right: 1px solid #ddd;
+			overflow-y: auto;
+		}
+		.sidebar input {
+			width: 100%;
+			padding: 8px;
+			margin-bottom: 10px;
+			box-sizing: border-box;
+		}
+		.sidebar button {
+			width: 100%;
+			padding: 10px;
+			margin-bottom: 10px;
+			background: #333;
+			color: white;
+			border: none;
+			cursor: pointer;
+		}
+		.sidebar button:hover {
+			background: #555;
+		}
+		#shareLink {
+			width: 100%;
+			padding: 8px;
+			margin-top: 10px;
+			box-sizing: border-box;
+		}
+		
+		.main-content {
+			grid-area: main;
+			padding: 20px;
+			overflow-y: auto;
+			background: white;
+		}
+		.video-container {
+			display: flex;
+			flex-direction: column;
+			gap: 20px;
+		}
+		.video-wrapper {
+			position: relative;
+			background: #000;
+			max-width: 800px;
+		}
+		video {
+			width: 100%;
+			display: block;
+		}
+		.mute-button {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+			padding: 5px 10px;
+			background: rgba(0,0,0,0.7);
+			color: white;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			opacity: 0;
+			transition: opacity 0.3s;
+		}
+		.video-wrapper:hover .mute-button {
+			opacity: 1;
+		}
+		.global-controls {
+			margin: 20px 0;
+			display: flex;
+			gap: 10px;
+		}
+		.loading {
+			color: white;
+			text-align: center;
+			padding: 20px;
+		}
+	</style>
 </head>
 <body>
-  <!-- headers -->
-  <header class="header">
-    <h1>1-5 video sync</h1>
-  </header>
-  
-  <!-- sidebars -->
-  <aside class="sidebar">
-    <input type="text" id="url1" placeholder="video 1 url">
-    <input type="text" id="url2" placeholder="video 2 url">
-    <input type="text" id="url3" placeholder="video 3 url">
-    <input type="text" id="url4" placeholder="video 4 url">
-    <input type="text" id="url5" placeholder="video 5 url">
-    
-    <button onclick="loadVideos()">load video urls</button>
-    <button onclick="generateShareLink()">generate share link</button>
-    
-    <input type="text" id="shareLink" readonly placeholder="shareable link appears here">
-    <button onclick="copyShareLink()">copy share link</button>
-  </aside>
-  
-  <!-- cotnents -->
-  <main class="main-content">
-    <div class="global-controls">
-      <button onclick="playAll()">▶ play all</button>
-      <button onclick="pauseAll()">pause all</button>
-      <button onclick="forceSync()">force sync</button>
-    </div>
-    
-    <div class="video-container" id="videoContainer"></div>
-  </main>
+	<header class="header">
+		<h1>1-5 video sync</h1>
+	</header>
+	
+	<aside class="sidebar">
+		<input type="text" id="url1" placeholder="video 1 url">
+		<input type="text" id="url2" placeholder="video 2 url">
+		<input type="text" id="url3" placeholder="video 3 url">
+		<input type="text" id="url4" placeholder="video 4 url">
+		<input type="text" id="url5" placeholder="video 5 url">
+		
+		<button onclick="loadVideos()">load video urls</button>
+		<button onclick="generateShareLink()">generate share link</button>
+		
+		<input type="text" id="shareLink" readonly placeholder="shareable link appears here">
+		<button onclick="copyShareLink()">copy share link</button>
+	</aside>
+	
+	<main class="main-content">
+		<div class="global-controls">
+			<button onclick="playAll()">▶ play all</button>
+			<button onclick="pauseAll()">pause all</button>
+		</div>
+		
+		<div class="video-container" id="videoContainer"></div>
+	</main>
 
 	<script>
 		let videos = [];
-		let isPlaying = false;
 
 		// load cached urls or url params on page load
 		window.onload = () => {
 			const urlParams = new URLSearchParams(window.location.search);
 			const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
 			
-			// prefer params if present, else fallback to local storage
 			inputs.forEach((id, index) => {
 				const input = document.getElementById(id);
 				const param = urlParams.get(`v${index + 1}`);
@@ -169,7 +158,6 @@
 				}
 			});
 
-			// load in videos automatically if url param
 			if (urlParams.has('v1')) loadVideos();
 		};
 
@@ -179,7 +167,6 @@
 				.map(id => document.getElementById(id).value)
 				.filter(url => url.trim() !== '');
 
-			// cache urls into local storage
 			inputs.forEach(id => {
 				const value = document.getElementById(id).value;
 				if (value.trim() !== '') {
@@ -192,7 +179,6 @@
 			const container = document.getElementById('videoContainer');
 			container.innerHTML = '';
 			videos = [];
-			isPlaying = false;
 
 			urls.forEach((url, index) => {
 				const wrapper = document.createElement('div');
@@ -204,13 +190,11 @@
 				video.preload = 'auto';
 				video.playsInline = true;
 				
-				// loading indicator
 				const loadingText = document.createElement('div');
 				loadingText.className = 'loading';
 				loadingText.textContent = 'loading video...';
 				wrapper.appendChild(loadingText);
 				
-				// show video after loaded metadata
 				video.addEventListener('loadedmetadata', () => {
 					loadingText.style.display = 'none';
 					video.style.display = 'block';
@@ -220,7 +204,6 @@
 					loadingText.textContent = 'error loading video';
 				});
 
-				// mute button as overlay
 				const muteButton = document.createElement('button');
 				muteButton.className = 'mute-button';
 				muteButton.textContent = 'mute';
@@ -235,97 +218,14 @@
 				container.appendChild(wrapper);
 				videos.push(video);
 			});
-
-			// setup sync events
-			setupSyncEvents();
 		}
 
-		function setupSyncEvents() {
-			// clear all old event listeners first
-			videos.forEach(video => {
-				const newVideo = video.cloneNode(true);
-				video.replaceWith(newVideo);
-				video = newVideo;
-			});
-			
-			// get fresh video references
-			videos = Array.from(document.querySelectorAll('video'));
-			if (videos.length === 0) return;
-			
-			// use first video as master
-			const masterVideo = videos[0];
-			
-			// sync all videos to master
-			function syncVideos() {
-				if (document.hidden) return;
-				
-				const currentTime = masterVideo.currentTime;
-				const isPlaying = !masterVideo.paused;
-				
-				videos.slice(1).forEach(video => {
-					// only sync if difference is significant
-					if (Math.abs(video.currentTime - currentTime) > 0.05) {
-						video.currentTime = currentTime;
-					}
-					
-					// sync play/pause state
-					if (isPlaying && video.paused) {
-						video.play().catch(() => {});
-					} else if (!isPlaying && !video.paused) {
-						video.pause();
-					}
-				});
-				
-				requestAnimationFrame(syncVideos);
-			}
-			
-			// start sync loop
-			requestAnimationFrame(syncVideos);
-			
-			// handle seeking on any video
-			videos.forEach(video => {
-				video.addEventListener('seeking', () => {
-					const seekTime = video.currentTime;
-					videos.forEach(v => {
-						if (v !== video) v.currentTime = seekTime;
-					});
-				});
-			});
-		}
-
-		// play/pause functions
 		function playAll() {
-			videos.forEach(video => {
-				video.play().catch(e => {
-					console.error('playback failed:', e);
-					// try again with muted audio if needed
-					video.muted = true;
-					video.play();
-				});
-			});
-			isPlaying = true;
+			videos.forEach(v => v.play().catch(() => {}));
 		}
 
 		function pauseAll() {
-			videos.forEach(video => {
-				video.pause();
-			});
-			isPlaying = false;
-		}
-
-		function forceSync() {
-			if (videos.length === 0) return;
-			const currentTime = videos[0].currentTime;
-			const shouldPlay = !videos[0].paused;
-			
-			videos.forEach(video => {
-				video.currentTime = currentTime;
-				if (shouldPlay && video.paused) {
-					video.play().catch(() => {});
-				} else if (!shouldPlay && !video.paused) {
-					video.pause();
-				}
-			});
+			videos.forEach(v => v.pause());
 		}
 
 		function generateShareLink() {
@@ -349,13 +249,6 @@
 			document.execCommand('copy');
 			alert('link copied to clipboard!');
 		}
-
-		// handle tab visibility changes
-		document.addEventListener('visibilitychange', () => {
-			if (!document.hidden && videos.length > 0) {
-				forceSync();
-			}
-		});
 	</script>
 </body>
 </html>
