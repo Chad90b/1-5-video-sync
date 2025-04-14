@@ -150,8 +150,6 @@
 
 	<script>
 		let videos = [];
-		let audioContext;
-		let videoStartTime = 0;
 		let isPlaying = false;
 
 		// load cached urls or url params on page load
@@ -176,12 +174,6 @@
 		};
 
 		function loadVideos() {
-			// clean up previous audio context
-			if (audioContext) {
-				audioContext.close();
-				audioContext = null;
-			}
-
 			const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
 			const urls = inputs
 				.map(id => document.getElementById(id).value)
@@ -202,9 +194,6 @@
 			videos = [];
 			isPlaying = false;
 
-			// create audio context when user interacts (required by browsers)
-			document.body.addEventListener('click', initAudioContext, { once: true });
-
 			urls.forEach((url, index) => {
 				const wrapper = document.createElement('div');
 				wrapper.className = 'video-wrapper';
@@ -214,7 +203,6 @@
 				video.controls = true;
 				video.preload = 'auto';
 				video.playsInline = true;
-				video.disableRemotePlayback = true;
 				
 				// loading indicator
 				const loadingText = document.createElement('div');
@@ -235,7 +223,7 @@
 				// mute button as overlay
 				const muteButton = document.createElement('button');
 				muteButton.className = 'mute-button';
-				muteButton.textContent = 'unmute';
+				muteButton.textContent = 'mute';
 				muteButton.onclick = (e) => {
 					e.stopPropagation();
 					video.muted = !video.muted;
@@ -247,44 +235,75 @@
 				container.appendChild(wrapper);
 				videos.push(video);
 			});
+
+			// setup sync events
+			setupSyncEvents();
 		}
 
-		function initAudioContext() {
-			if (audioContext) return;
-			audioContext = new (window.AudioContext || window.webkitAudioContext)();
-			
-			// create audio nodes for each video
+		function setupSyncEvents() {
+			// clear all old event listeners first
 			videos.forEach(video => {
-				const source = audioContext.createMediaElementSource(video);
-				source.connect(audioContext.destination);
+				const newVideo = video.cloneNode(true);
+				video.replaceWith(newVideo);
+				video = newVideo;
+			});
+			
+			// get fresh video references
+			videos = Array.from(document.querySelectorAll('video'));
+			if (videos.length === 0) return;
+			
+			// use first video as master
+			const masterVideo = videos[0];
+			
+			// sync all videos to master
+			function syncVideos() {
+				if (document.hidden) return;
+				
+				const currentTime = masterVideo.currentTime;
+				const isPlaying = !masterVideo.paused;
+				
+				videos.slice(1).forEach(video => {
+					// only sync if difference is significant
+					if (Math.abs(video.currentTime - currentTime) > 0.05) {
+						video.currentTime = currentTime;
+					}
+					
+					// sync play/pause state
+					if (isPlaying && video.paused) {
+						video.play().catch(() => {});
+					} else if (!isPlaying && !video.paused) {
+						video.pause();
+					}
+				});
+				
+				requestAnimationFrame(syncVideos);
+			}
+			
+			// start sync loop
+			requestAnimationFrame(syncVideos);
+			
+			// handle seeking on any video
+			videos.forEach(video => {
+				video.addEventListener('seeking', () => {
+					const seekTime = video.currentTime;
+					videos.forEach(v => {
+						if (v !== video) v.currentTime = seekTime;
+					});
+				});
 			});
 		}
 
 		// play/pause functions
 		function playAll() {
-			if (!audioContext) {
-				initAudioContext();
-			} else if (audioContext.state === 'suspended') {
-				audioContext.resume();
-			}
-			
-			// first unmute all videos
-			videos.forEach(video => {
-				video.muted = false;
-			});
-			
-			// then play them all
 			videos.forEach(video => {
 				video.play().catch(e => {
 					console.error('playback failed:', e);
-					// fallback to regular playback if needed
+					// try again with muted audio if needed
 					video.muted = true;
 					video.play();
 				});
 			});
-			
 			isPlaying = true;
-			videoStartTime = performance.now();
 		}
 
 		function pauseAll() {
@@ -308,35 +327,35 @@
 				}
 			});
 		}
-    
-    function generateShareLink() {
-      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
-      const params = new URLSearchParams();
-      inputs.forEach((id, index) => {
-        const value = document.getElementById(id).value;
-        if (value.trim() !== '') {
-          params.set(`v${index + 1}`, value);
-        }
-      });
 
-      const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
-      const shareInput = document.getElementById('shareLink');
-      shareInput.value = shareUrl;
-    }
+		function generateShareLink() {
+			const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+			const params = new URLSearchParams();
+			inputs.forEach((id, index) => {
+				const value = document.getElementById(id).value;
+				if (value.trim() !== '') {
+					params.set(`v${index + 1}`, value);
+				}
+			});
 
-    function copyShareLink() {
-      const shareInput = document.getElementById('shareLink');
-      shareInput.select();
-      document.execCommand('copy');
-      alert('link copied to clipboard!');
-    }
+			const shareUrl = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+			const shareInput = document.getElementById('shareLink');
+			shareInput.value = shareUrl;
+		}
 
-    // handle tab visibility changes
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden && videos.length > 0) {
-        forceSync();
-      }
-    });
-  </script>
+		function copyShareLink() {
+			const shareInput = document.getElementById('shareLink');
+			shareInput.select();
+			document.execCommand('copy');
+			alert('link copied to clipboard!');
+		}
+
+		// handle tab visibility changes
+		document.addEventListener('visibilitychange', () => {
+			if (!document.hidden && videos.length > 0) {
+				forceSync();
+			}
+		});
+	</script>
 </body>
 </html>
