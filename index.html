@@ -148,181 +148,166 @@
     <div class="video-container" id="videoContainer"></div>
   </main>
 
-  <script>
-    let videos = [];
-    let audioContext;
-    let videoStartTime = 0;
-    let isPlaying = false;
+	<script>
+		let videos = [];
+		let audioContext;
+		let videoStartTime = 0;
+		let isPlaying = false;
 
-    // load cached urls or url params on page load
-    window.onload = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
-      
-      // prefer perams if present, else fallback to local storgae
-      inputs.forEach((id, index) => {
-        const input = document.getElementById(id);
-        const param = urlParams.get(`v${index + 1}`);
-        if (param) {
-          input.value = param;
-        } else {
-          const cached = localStorage.getItem(id);
-          if (cached) input.value = cached;
-        }
-      });
+		// load cached urls or url params on page load
+		window.onload = () => {
+			const urlParams = new URLSearchParams(window.location.search);
+			const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+			
+			// prefer params if present, else fallback to local storage
+			inputs.forEach((id, index) => {
+				const input = document.getElementById(id);
+				const param = urlParams.get(`v${index + 1}`);
+				if (param) {
+					input.value = param;
+				} else {
+					const cached = localStorage.getItem(id);
+					if (cached) input.value = cached;
+				}
+			});
 
-      // load in videos automatically if url param
-      if (urlParams.has('v1')) loadVideos();
-    };
+			// load in videos automatically if url param
+			if (urlParams.has('v1')) loadVideos();
+		};
 
-    function loadVideos() {
-      // clean up previous audio context
-      if (audioContext) {
-        audioContext.close();
-        audioContext = null;
-      }
+		function loadVideos() {
+			// clean up previous audio context
+			if (audioContext) {
+				audioContext.close();
+				audioContext = null;
+			}
 
-      const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
-      const urls = inputs
-        .map(id => document.getElementById(id).value)
-        .filter(url => url.trim() !== '');
+			const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
+			const urls = inputs
+				.map(id => document.getElementById(id).value)
+				.filter(url => url.trim() !== '');
 
-      // cache urls into local storage
-      inputs.forEach(id => {
-        const value = document.getElementById(id).value;
-        if (value.trim() !== '') {
-          localStorage.setItem(id, value);
-        } else {
-          localStorage.removeItem(id);
-        }
-      });
+			// cache urls into local storage
+			inputs.forEach(id => {
+				const value = document.getElementById(id).value;
+				if (value.trim() !== '') {
+					localStorage.setItem(id, value);
+				} else {
+					localStorage.removeItem(id);
+				}
+			});
 
-      const container = document.getElementById('videoContainer');
-      container.innerHTML = '';
-      videos = [];
-      isPlaying = false;
+			const container = document.getElementById('videoContainer');
+			container.innerHTML = '';
+			videos = [];
+			isPlaying = false;
 
-      // create audio context when user interacts (required by browsers)
-      document.body.addEventListener('click', initAudioContext, { once: true });
+			// create audio context when user interacts (required by browsers)
+			document.body.addEventListener('click', initAudioContext, { once: true });
 
-      urls.forEach((url, index) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'video-wrapper';
-        
-        const video = document.createElement('video');
-        video.src = url;
-        video.controls = true;
-        video.preload = 'auto';
-        video.playsInline = true;
-        video.muted = true; // we handle audio separately
-        video.disableRemotePlayback = true;
-        
-        // loading indicator
-        const loadingText = document.createElement('div');
-        loadingText.className = 'loading';
-        loadingText.textContent = 'loading video...';
-        wrapper.appendChild(loadingText);
-        
-        // show video after loaded metadata
-        video.addEventListener('loadedmetadata', () => {
-          loadingText.style.display = 'none';
-          video.style.display = 'block';
-        });
+			urls.forEach((url, index) => {
+				const wrapper = document.createElement('div');
+				wrapper.className = 'video-wrapper';
+				
+				const video = document.createElement('video');
+				video.src = url;
+				video.controls = true;
+				video.preload = 'auto';
+				video.playsInline = true;
+				video.disableRemotePlayback = true;
+				
+				// loading indicator
+				const loadingText = document.createElement('div');
+				loadingText.className = 'loading';
+				loadingText.textContent = 'loading video...';
+				wrapper.appendChild(loadingText);
+				
+				// show video after loaded metadata
+				video.addEventListener('loadedmetadata', () => {
+					loadingText.style.display = 'none';
+					video.style.display = 'block';
+				});
 
-        video.addEventListener('error', () => {
-          loadingText.textContent = 'error loading video';
-        });
+				video.addEventListener('error', () => {
+					loadingText.textContent = 'error loading video';
+				});
 
-        // mute button as overlay
-        const muteButton = document.createElement('button');
-        muteButton.className = 'mute-button';
-        muteButton.textContent = 'Unmute';
-        muteButton.onclick = (e) => {
-          e.stopPropagation();
-          video.muted = !video.muted;
-          muteButton.textContent = video.muted ? 'Unmute' : 'Mute';
-        };
+				// mute button as overlay
+				const muteButton = document.createElement('button');
+				muteButton.className = 'mute-button';
+				muteButton.textContent = 'unmute';
+				muteButton.onclick = (e) => {
+					e.stopPropagation();
+					video.muted = !video.muted;
+					muteButton.textContent = video.muted ? 'unmute' : 'mute';
+				};
 
-        wrapper.appendChild(video);
-        wrapper.appendChild(muteButton);
-        container.appendChild(wrapper);
-        videos.push(video);
-      });
-    }
+				wrapper.appendChild(video);
+				wrapper.appendChild(muteButton);
+				container.appendChild(wrapper);
+				videos.push(video);
+			});
+		}
 
-    function initAudioContext() {
-      if (audioContext) return;
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      
-      // create a single gain node for all videos
-      const gainNode = audioContext.createGain();
-      gainNode.gain.value = 1.0;
-      gainNode.connect(audioContext.destination);
-      
-      // setup audio for each video
-      videos.forEach(video => {
-        const source = audioContext.createMediaElementSource(video);
-        source.connect(gainNode);
-      });
-    }
+		function initAudioContext() {
+			if (audioContext) return;
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+			
+			// create audio nodes for each video
+			videos.forEach(video => {
+				const source = audioContext.createMediaElementSource(video);
+				source.connect(audioContext.destination);
+			});
+		}
 
-    // gc funcs play pause etc
-    function playAll() {
-      if (!audioContext) initAudioContext();
-      
-      const now = audioContext.currentTime;
-      const startTime = now + 0.1; // start 100ms from now
-      
-      videos.forEach((video, index) => {
-        video.currentTime = 0;
-        video.play()
-          .then(() => {
-            // schedule precise playback start
-            if (audioContext.state === 'suspended') {
-              audioContext.resume();
-            }
-            video.currentTime = 0;
-            const playPromise = video.play();
-            
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                // fallback if precise timing fails
-                video.play();
-              });
-            }
-          })
-          .catch(() => {
-            // fallback if audio context fails
-            video.muted = false;
-            video.play();
-          });
-      });
-      
-      isPlaying = true;
-      videoStartTime = performance.now();
-    }
+		// play/pause functions
+		function playAll() {
+			if (!audioContext) {
+				initAudioContext();
+			} else if (audioContext.state === 'suspended') {
+				audioContext.resume();
+			}
+			
+			// first unmute all videos
+			videos.forEach(video => {
+				video.muted = false;
+			});
+			
+			// then play them all
+			videos.forEach(video => {
+				video.play().catch(e => {
+					console.error('playback failed:', e);
+					// fallback to regular playback if needed
+					video.muted = true;
+					video.play();
+				});
+			});
+			
+			isPlaying = true;
+			videoStartTime = performance.now();
+		}
 
-    function pauseAll() {
-      videos.forEach(video => {
-        video.pause();
-      });
-      isPlaying = false;
-    }
+		function pauseAll() {
+			videos.forEach(video => {
+				video.pause();
+			});
+			isPlaying = false;
+		}
 
-    function forceSync() {
-      if (videos.length === 0) return;
-      const currentTime = videos[0].currentTime;
-      const shouldPlay = !videos[0].paused;
-      
-      videos.forEach(video => {
-        video.currentTime = currentTime;
-        if (shouldPlay && video.paused) {
-          video.play().catch(() => {});
-        } else if (!shouldPlay && !video.paused) {
-          video.pause();
-        }
-      });
-    }
+		function forceSync() {
+			if (videos.length === 0) return;
+			const currentTime = videos[0].currentTime;
+			const shouldPlay = !videos[0].paused;
+			
+			videos.forEach(video => {
+				video.currentTime = currentTime;
+				if (shouldPlay && video.paused) {
+					video.play().catch(() => {});
+				} else if (!shouldPlay && !video.paused) {
+					video.pause();
+				}
+			});
+		}
     
     function generateShareLink() {
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
