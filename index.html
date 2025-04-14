@@ -82,10 +82,11 @@
       background: #000;
       max-width: 800px;
     }
+    /* dont remove 'will-change: transform' it helps with rendering performance */
     video {
-      will-change: transform;
       width: 100%;
       display: block;
+      will-change: transform;
     }
     .mute-button {
       position: absolute;
@@ -147,10 +148,10 @@
     <div class="video-container" id="videoContainer"></div>
   </main>
 
-<script>
+  <script>
     let videos = [];
     let isSyncing = false;
-    let syncInterval;
+    let syncAnimationFrame;
 
     // load cached urls or url params on page load
     window.onload = () => {
@@ -174,9 +175,12 @@
     };
 
     function loadVideos() {
-      // clear sync
-      if (syncInterval) clearInterval(syncInterval);
-      
+      // clear existing sync first
+      if (syncAnimationFrame) {
+        cancelAnimationFrame(syncAnimationFrame);
+        syncAnimationFrame = null;
+      }
+
       const inputs = ['url1', 'url2', 'url3', 'url4', 'url5'];
       const urls = inputs
         .map(id => document.getElementById(id).value)
@@ -243,9 +247,6 @@
     }
 
     function setupSyncEvents() {
-      // clear any existing interval
-      if (syncInterval) clearInterval(syncInterval);
-      
       // clear all old event listeners first
       videos.forEach(video => {
         const newVideo = video.cloneNode(true);
@@ -259,9 +260,12 @@
       
       const masterVideo = videos[0];
       
-      // more efficient sync approach
+      // efficient sync using requestAnimationFrame
       function efficientSync() {
-        if (isSyncing || document.hidden) return;
+        if (isSyncing || document.hidden) {
+          syncAnimationFrame = requestAnimationFrame(efficientSync);
+          return;
+        }
         
         isSyncing = true;
         const targetTime = masterVideo.currentTime;
@@ -274,7 +278,7 @@
           // skip if video isn't ready
           if (video.readyState < 2) continue;
           
-          // only sync if difference is significant
+          // only sync if difference is significant (>100ms)
           if (Math.abs(video.currentTime - targetTime) > 0.1) {
             video.currentTime = targetTime;
           }
@@ -288,11 +292,11 @@
         }
         
         isSyncing = false;
-        requestAnimationFrame(efficientSync);
+        syncAnimationFrame = requestAnimationFrame(efficientSync);
       }
       
-      // use requestAnimationFrame instead of setInterval
-      requestAnimationFrame(efficientSync);
+      // start the sync loop
+      syncAnimationFrame = requestAnimationFrame(efficientSync);
       
       // handle seeking on any video
       videos.forEach(video => {
@@ -303,20 +307,6 @@
           for (const v of videos) {
             if (v !== video) v.currentTime = seekTime;
           }
-          isSyncing = false;
-        });
-      });
-    }
-
-      // handle seeking on any video
-      videos.forEach(video => {
-        video.addEventListener('seeking', () => {
-          if (isSyncing) return;
-          isSyncing = true;
-          const seekTime = video.currentTime;
-          videos.forEach(v => {
-            if (v !== video) v.currentTime = seekTime;
-          });
           isSyncing = false;
         });
       });
@@ -367,6 +357,13 @@
       document.execCommand('copy');
       alert('link copied to clipboard!');
     }
+
+    // handle tab visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && videos.length > 0) {
+        forceSync();
+      }
+    });
   </script>
 </body>
 </html>
