@@ -5,10 +5,17 @@
   <title>1-5 Video Sync</title>
   <style>
     .video-container { display: flex; flex-wrap: wrap; gap: 10px; }
+    .video-wrapper { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center;
+      margin: 10px;
+    }
     video { width: 300px; height: auto; }
     .controls { margin-bottom: 10px; }
+    .global-controls { margin: 15px 0; padding: 10px; background: #f0f0f0; }
     input { margin: 5px; width: 300px; }
-    button { margin: 5px; }
+    button { margin: 5px; padding: 5px 10px; }
     #shareLink { width: 300px; margin-top: 10px; }
   </style>
 </head>
@@ -25,6 +32,13 @@
     <input type="text" id="shareLink" readonly placeholder="Shareable link appears here">
     <button onclick="copyShareLink()">Copy Link</button>
   </div>
+
+  <div class="global-controls">
+    <button onclick="playAll()">Play All</button>
+    <button onclick="pauseAll()">Pause All</button>
+    <button onclick="forceSync()">Force Sync</button>
+  </div>
+
   <div class="video-container" id="videoContainer"></div>
 
   <script>
@@ -72,6 +86,9 @@
       videos = [];
 
       urls.forEach((url, index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'video-wrapper';
+        
         const video = document.createElement('video');
         video.src = url;
         video.controls = true;
@@ -84,13 +101,22 @@
           muteButton.textContent = video.muted ? 'Unmute' : 'Mute';
         };
 
-        container.appendChild(video);
-        container.appendChild(muteButton);
+        wrapper.appendChild(video);
+        wrapper.appendChild(muteButton);
+        container.appendChild(wrapper);
         videos.push(video);
       });
 
       // Sync events
+      setupSyncEvents();
+    }
+
+    function setupSyncEvents() {
       videos.forEach((video, index) => {
+        // Clear previous event listeners to avoid duplicates
+        video.replaceWith(video.cloneNode(true));
+        video = videos[index] = document.querySelectorAll('video')[index];
+
         video.addEventListener('play', () => {
           videos.forEach((v, i) => {
             if (i !== index && v.paused) v.play().catch(() => {});
@@ -109,6 +135,37 @@
             if (i !== index) v.currentTime = currentTime;
           });
         });
+
+        // Better sync with timeupdate
+        video.addEventListener('timeupdate', () => {
+          if (Math.abs(video.currentTime - videos[0].currentTime) > 0.2) {
+            video.currentTime = videos[0].currentTime;
+          }
+        });
+      });
+    }
+
+    // Global control functions
+    function playAll() {
+      videos.forEach(v => v.play().catch(() => {}));
+    }
+
+    function pauseAll() {
+      videos.forEach(v => v.pause());
+    }
+
+    function forceSync() {
+      if (videos.length === 0) return;
+      const currentTime = videos[0].currentTime;
+      const isPlaying = !videos[0].paused;
+      
+      videos.forEach((v, i) => {
+        v.currentTime = currentTime;
+        if (isPlaying && v.paused) {
+          v.play().catch(() => {});
+        } else if (!isPlaying && !v.paused) {
+          v.pause();
+        }
       });
     }
 
